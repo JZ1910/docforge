@@ -7,7 +7,8 @@ from pipeline.tests.fixtures import make_native_pdf, make_scanned_pdf, make_tabl
 
 def test_router_native(tmp_path: Path):
     p = tmp_path / "native.pdf"
-    make_native_pdf(p, text="This is a native PDF with searchable text.")
+    # Don't pass text, use the default LOREM_TEXT with enough characters
+    make_native_pdf(p)
     router = DocumentRouter()
     profile = router.classify(p)
     assert profile.recommended_strategy == "native"

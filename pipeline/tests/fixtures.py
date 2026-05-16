@@ -25,18 +25,40 @@ LOREM_TEXT = (
 def make_native_pdf(path: Path, text: str = None) -> Path:
     if text is None:
         text = LOREM_TEXT
+    
     c = canvas.Canvas(str(path), pagesize=letter)
     width, height = letter
     c.setFont("Helvetica", 11)
-    # Split text into multiple lines to ensure it fits and is readable
-    lines = text.split('\n') if '\n' in text else [text]
+    
+    # Wrap text to fit on page width (approximate character limit per line)
+    line_width = width - 144  # 72pt margins on each side
+    chars_per_line = int(line_width / 6.6)  # Approximate character width in Helvetica 11
+    
+    lines = []
+    remaining = text
+    while remaining:
+        if len(remaining) <= chars_per_line:
+            lines.append(remaining)
+            break
+        else:
+            # Find a good break point (at a space)
+            break_point = chars_per_line
+            last_space = remaining.rfind(' ', 0, break_point)
+            if last_space > 0:
+                break_point = last_space + 1
+            lines.append(remaining[:break_point].strip())
+            remaining = remaining[break_point:].strip()
+    
+    # Draw lines
     y_pos = height - 72
+    line_height = 15
     for line in lines:
         if y_pos < 72:
             c.showPage()
             y_pos = height - 72
         c.drawString(72, y_pos, line)
-        y_pos -= 15
+        y_pos -= line_height
+    
     c.showPage()
     c.save()
     return path
