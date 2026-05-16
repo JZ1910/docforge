@@ -43,17 +43,29 @@ class QualityScorer:
         language_confidence = 0.0
         lang_reason = ""
         try:
-            langs = detect_langs(text)
-            if langs:
-                best = langs[0]
-                language_confidence = float(best.prob)
-                lang_reason = f"Language {best.lang} confidence {best.prob:.2f}"
-            else:
+            # If the text is heavily non-alphabetic, skip trusting language detector
+            if char_distribution_score < 0.2:
                 language_confidence = 0.3
-                lang_reason = "Language detection returned no candidates"
+                lang_reason = "Language detection skipped (low alphabetic char ratio)"
+            else:
+                langs = detect_langs(text)
+                if langs:
+                    best = langs[0]
+                    language_confidence = float(best.prob)
+                    lang_reason = f"Language {best.lang} confidence {best.prob:.2f}"
+                else:
+                    language_confidence = 0.3
+                    lang_reason = "Language detection returned no candidates"
         except LangDetectException:
             language_confidence = 0.3
             lang_reason = "Language detection failed (text too short or garbled)"
+
+        # Penalize language confidence when many words contain digits (OCR artifacts)
+        digit_words = sum(1 for w in words if any(c.isdigit() for c in w))
+        digit_word_ratio = (digit_words / len(words)) if words else 0.0
+        if digit_word_ratio > 0.2:
+            language_confidence = language_confidence * max(0.0, 1.0 - digit_word_ratio)
+            lang_reason += f"; reduced for digit_word_ratio={digit_word_ratio:.2f}"
 
         overall = 0.4 * char_distribution_score + 0.3 * word_length_score + 0.3 * language_confidence
         flagged = overall < QUALITY_THRESHOLD
