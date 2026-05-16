@@ -20,5 +20,17 @@ def test_quality_noise():
     scorer = QualityScorer()
     text = "�������� ������"
     score = scorer.score(text)
-    assert score.language_confidence <= 0.3
+    # Short text triggers the language guard, so confidence is 0.5 (not 0.3)
+    assert score.language_confidence == 0.5
     assert score.flagged_for_review is True
+
+def test_quality_short_text():
+    """Test that langdetect is guarded against short text instability."""
+    scorer = QualityScorer()
+    # Short text that langdetect may misclassify
+    text = "Sample PDF for /extract endpoint test — DocForge"
+    score = scorer.score(text)
+    # Language confidence should be 0.5 (guard value) for short text
+    assert score.language_confidence == 0.5
+    # Reasoning should mention the short-text warning
+    assert "too short for reliable language detection" in score.reasoning.lower()

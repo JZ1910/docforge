@@ -43,8 +43,12 @@ class QualityScorer:
         language_confidence = 0.0
         lang_reason = ""
         try:
+            # Guard against short text: langdetect is unreliable with < 20 words
+            if len(words) < 20:
+                language_confidence = 0.5
+                lang_reason = f"Text too short for reliable language detection ({len(words)} words, minimum 20)"
             # If the text is heavily non-alphabetic, skip trusting language detector
-            if char_distribution_score < 0.2:
+            elif char_distribution_score < 0.2:
                 language_confidence = 0.3
                 lang_reason = "Language detection skipped (low alphabetic char ratio)"
             else:
