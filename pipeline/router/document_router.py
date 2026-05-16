@@ -53,7 +53,15 @@ class DocumentRouter:
                 # is_scanned heuristic: avg chars per page
                 char_counts: List[int] = []
                 for i, page in enumerate(sampled_pages, start=1):
+                    # Prefer full text extraction, but fall back to word extraction
                     text = (page.extract_text() or "")
+                    if not text or len(text.strip()) == 0:
+                        try:
+                            words = page.extract_words()
+                            if words:
+                                text = " ".join(w.get("text", "") for w in words)
+                        except Exception:
+                            pass
                     char_counts.append(len(text))
                 avg_chars = statistics.mean(char_counts) if char_counts else 0
                 is_scanned = avg_chars < SCANNED_CHAR_THRESHOLD
