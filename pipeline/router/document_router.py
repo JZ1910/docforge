@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 
 # Heuristic constants
 SAMPLE_PAGES = 3
-SCANNED_CHAR_THRESHOLD = 20  # chars per page => scanned (adjusted for small test fixtures)
+SCANNED_CHAR_THRESHOLD = 50  # chars per page => scanned
 MULTICOL_STDDEV_THRESHOLD = 100.0  # stddev of left-edge x positions to mark multi-column
 
 
