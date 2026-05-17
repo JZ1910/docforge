@@ -3,13 +3,19 @@ import tempfile
 import shutil
 import logging
 import time
+from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from .orchestrator import IngestionOrchestrator
 from .extractors.base import ExtractionError
+from .indexing_orchestrator import IndexingOrchestrator as IndexingOrc, IndexingError
+from .retrieval import Retriever, RetrievalResult
+from .storage.repository import DocumentRepository
+from .storage.database import SessionLocal
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT_DIR / ".env")
