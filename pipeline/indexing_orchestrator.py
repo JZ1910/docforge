@@ -9,6 +9,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from .orchestrator import IngestionOrchestrator
+from .chunking.base import Chunk
 from .chunking.recursive import RecursiveCharacterChunker
 from .embeddings.local import LocalSentenceTransformer
 from .storage.database import SessionLocal
@@ -51,16 +52,26 @@ class IndexingOrchestrator:
         self.ingester = IngestionOrchestrator()
         self.chunker = RecursiveCharacterChunker()
         self.embedder = LocalSentenceTransformer()
+        self.doc_repo = DocumentRepository
+        self.chunk_repo = ChunkRepository
 
-    def index(self, pdf_path: Path) -> Document:
+    def index(self, pdf_path: Path) -> tuple[Document, dict[str, float]]:
         """Run the full ingestion pipeline on one PDF.
 
         Args:
             pdf_path: filesystem path to a .pdf file
 
         Returns:
-            The persisted SQLAlchemy Document (with chunks accessible
-            via document.chunks).
+            Tuple of (persisted SQLAlchemy Document, timings_dict) where
+            timings_dict contains per-stage timings in milliseconds:
+            {
+                "extraction_ms": float,
+                "chunking_ms": float,
+                "embedding_ms": float,
+                "storage_ms": float,
+                "total_ms": float,
+                "chunk_count": int,
+            }
 
         Raises:
             IndexingError: wraps any failure in extraction, chunking,
@@ -132,7 +143,7 @@ class IndexingOrchestrator:
                     else 0.0
                 )
 
-                doc_repo = DocumentRepository(session)
+                doc_repo = self.doc_repo(session)
                 document = doc_repo.create(extraction_dict)
 
                 if all_chunks:
@@ -148,7 +159,7 @@ class IndexingOrchestrator:
                         }
                         for c in all_chunks
                     ]
-                    chunk_repo = ChunkRepository(session)
+                    chunk_repo = self.chunk_repo(session)
                     chunk_repo.bulk_insert(chunk_dicts, document.id, embeddings)
             # After commit, refresh the document so caller can access chunks
             session.refresh(document)
@@ -171,4 +182,14 @@ class IndexingOrchestrator:
             )
             session.close()
 
-        return document
+        # Build timings dict
+        timings = {
+            "extraction_ms": extraction_ms,
+            "chunking_ms": chunking_ms,
+            "embedding_ms": embedding_ms,
+            "storage_ms": storage_ms if storage_ms is not None else 0.0,
+            "total_ms": total_ms,
+            "chunk_count": len(all_chunks),
+        }
+        
+        return document, timings
