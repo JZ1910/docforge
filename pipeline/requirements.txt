@@ -7,10 +7,9 @@ h11==0.16.0
 httptools==0.7.1
 idna==3.15
 numpy==2.4.5
-pgvector==0.4.2
-psycopg2-binary==2.9.12
 pydantic==2.13.4
 pydantic_core==2.46.4
+psycopg2-binary==2.9.12
 python-dotenv==1.2.2
 PyYAML==6.0.3
 starlette==1.0.0
@@ -32,4 +31,12 @@ Pillow==10.0.1
 pytest==7.4.2
 pytest-asyncio==0.21.2
 
+# API deps
 python-multipart==0.0.6
+
+# RAG knowledge base deps
+sqlalchemy==2.0.25
+alembic==1.13.1
+sentence-transformers==2.3.1
+torch==2.1.2
+pgvector==0.3.0
